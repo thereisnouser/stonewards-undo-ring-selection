@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Globalization;
+using System.Text.RegularExpressions;
 using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
@@ -22,6 +24,9 @@ namespace StonewardsUndoRingSelection
         private static MethodInfo _onUpgradeClicked;
         private static bool _replaying;
         private static PendingChoice _pending;
+        // Exact offers currently displayed by the game. Reusing them is not a reroll.
+        private static List<RogueLikeUpgradeManager.UpgradeDraftChoice> _shownChoices;
+        private static bool _restoringButtons;
 
         private sealed class PendingChoice
         {
@@ -85,7 +90,7 @@ namespace StonewardsUndoRingSelection
                 _pending.Args = args != null ? (object[])args.Clone() : Array.Empty<object>();
                 EnsurePanel(_pending);
                 if (_pending.Description != null)
-                    _pending.Description.text = "RING: " + DescribeSelection(_pending.Args);
+                    _pending.Description.text = "RING: " + DescribeSelection(menu, _pending.Args);
 
                 _plugin.Logger.LogDebug("Ring click held for confirmation; args=" + _pending.Args.Length);
                 return false;
@@ -221,7 +226,7 @@ namespace StonewardsUndoRingSelection
 
             var confirm = CreateGameButton("CONFIRM", () => Confirm(choice.Menu),
                 _confirmFrame, _confirmHoverFrame);
-            var cancel = CreateGameButton("CANCEL", Cancel,
+            var cancel = CreateGameButton("CANCEL", () => Cancel(true),
                 _cancelFrame, _cancelHoverFrame);
             buttons.Add(confirm);
             buttons.Add(cancel);
@@ -396,35 +401,215 @@ namespace StonewardsUndoRingSelection
             }
         }
 
-        private static void Cancel()
+        private static void Cancel(bool resetNativeSelection = false)
         {
             var choice = _pending;
             _pending = null;
             if (choice?.Panel != null)
                 choice.Panel.RemoveFromHierarchy();
+
+            // Vanilla remembers which card was focused/selected even when our
+            // confirmation panel disappears. Only an explicit CANCEL resets it.
+            if (resetNativeSelection && choice?.Menu != null)
+                RestoreOriginalOffers(choice.Menu);
         }
 
-        private static string DescribeSelection(object[] args)
+        private static void RestoreOriginalOffers(RogueLikeUpgradeMenu menu)
         {
-            if (args.Length == 0)
-                return "CURRENT CHOICE";
+            if (_restoringButtons || menu == null || !menu.IsOpen ||
+                menu.IsUpgradeSelected || _shownChoices == null || _shownChoices.Count == 0)
+                return;
 
-            object value = args[0];
-            if (value == null)
-                return "CURRENT CHOICE";
-
-            // Different game versions may pass a draft index, choice struct, or an upgrade object.
-            object upgrade = ReadMember(value, "Upgrade") ?? ReadMember(value, "upgrade") ?? value;
-            string name = ReadMember(upgrade, "DisplayName")?.ToString()
-                ?? ReadMember(upgrade, "Name")?.ToString()
-                ?? ReadMember(upgrade, "name")?.ToString();
-            if (string.IsNullOrWhiteSpace(name))
+            try
             {
-                if (value is int index)
-                    return "OPTION " + (index + 1);
-                return "CURRENT CHOICE";
+                // Reinitialise the existing buttons with EXACTLY the same offers.
+                // Setup updates presentation/state; GenerateThreeChoices, ApplyUpgrade,
+                // reroll and network commands are deliberately NOT called.
+                var popup = AccessTools.Field(typeof(RogueLikeUpgradeMenu),
+                    "upgradePopupController")?.GetValue(menu) as UpgradePopupController;
+                if (popup == null)
+                {
+                    _plugin.Logger.LogWarning("Could not reset ring focus: UpgradePopupController not found.");
+                    return;
+                }
+
+                _restoringButtons = true;
+                popup.Setup(new List<RogueLikeUpgradeManager.UpgradeDraftChoice>(_shownChoices));
+
+                // A focused UI Toolkit element can keep an outline even after
+                // the card data has been reset; release the focused element too.
+                var root = menu.rogueLikeUpgradeScreen;
+                var focused = root?.panel?.focusController?.focusedElement as Focusable;
+                focused?.Blur();
+
+                _plugin.Logger.LogInfo("Cancelled ring choice; original offer buttons and focus restored.");
             }
-            return name.Length <= 65 ? name : name.Substring(0, 62) + "...";
+            catch (Exception ex)
+            {
+                _plugin.Logger.LogWarning("Could not completely restore original ring offer UI: " + ex);
+            }
+            finally
+            {
+                _restoringButtons = false;
+            }
+        }
+
+        private static string DescribeSelection(RogueLikeUpgradeMenu menu, object[] args)
+        {
+            if (args == null || args.Length == 0 || args[0] == null)
+                return "CURRENT CHOICE";
+
+            var value = args[0];
+            string upgradeId = GetUpgradeId(value);
+            int chosenIndex = value is int ? (int)value : -1;
+            var popup = AccessTools.Field(typeof(RogueLikeUpgradeMenu),
+                "upgradePopupController")?.GetValue(menu) as UpgradePopupController;
+
+            // Prefer what the game's own ring card currently displays.
+            // The raw upgrade Name/ID is an identifier such as CRIT_DAMAGE, not a title.
+            if (popup?.UpgradeButtons != null)
+            {
+                int index = 0;
+                foreach (var button in popup.UpgradeButtons)
+                {
+                    if (button == null)
+                    {
+                        index++;
+                        continue;
+                    }
+
+                    var displayed = button.DraftChoice;
+                    bool matches = chosenIndex >= 0 ? index == chosenIndex :
+                        !string.IsNullOrEmpty(upgradeId) &&
+                        displayed.Upgrade != null &&
+                        string.Equals(displayed.Upgrade.ID, upgradeId, StringComparison.Ordinal);
+
+                    if (matches)
+                    {
+                        string title = FindNativeCardTitle(button);
+                        if (!string.IsNullOrWhiteSpace(title))
+                            return TruncateTitle(title);
+                    }
+                    index++;
+                }
+            }
+
+            // Localization-aware properties/methods vary between game builds.
+            object upgrade = ReadMember(value, "Upgrade") ?? ReadMember(value, "upgrade") ?? value;
+            foreach (var member in new[] { "LocalizedName", "localizedName", "DisplayName" })
+            {
+                string name = ReadMember(upgrade, member)?.ToString();
+                if (LooksLikeTitle(name))
+                    return TruncateTitle(name);
+            }
+            foreach (var methodName in new[] { "GetLocalizedName", "GetLocalizedTitle" })
+            {
+                try
+                {
+                    var method = AccessTools.Method(upgrade.GetType(), methodName, Type.EmptyTypes);
+                    string name = method?.Invoke(upgrade, null)?.ToString();
+                    if (LooksLikeTitle(name))
+                        return TruncateTitle(name);
+                }
+                catch { /* Keep a human-readable fallback if localization API changed. */ }
+            }
+
+            // Last resort: display a readable title, never an uppercase raw ID.
+            string raw = upgradeId ?? value.ToString();
+            raw = raw.Replace('_', ' ').Replace('-', ' ').Trim();
+            return TruncateTitle(CultureInfo.CurrentCulture.TextInfo.ToTitleCase(raw.ToLowerInvariant()));
+        }
+
+        private static string GetUpgradeId(object value)
+        {
+            if (value == null)
+                return null;
+            var upgrade = ReadMember(value, "Upgrade") ?? ReadMember(value, "upgrade") ?? value;
+            return ReadMember(upgrade, "ID")?.ToString();
+        }
+
+        private static string FindNativeCardTitle(object card)
+        {
+            if (card == null)
+                return null;
+
+            // In Stonewards the title is a Label on UpgradePopupController.UpgradeButton.
+            // Use reflection because its private field names may change between versions.
+            const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+            var fields = card.GetType().GetFields(flags);
+            foreach (var field in fields)
+            {
+                if (!typeof(Label).IsAssignableFrom(field.FieldType))
+                    continue;
+                if (field.Name.IndexOf("name", StringComparison.OrdinalIgnoreCase) < 0 &&
+                    field.Name.IndexOf("title", StringComparison.OrdinalIgnoreCase) < 0)
+                    continue;
+
+                string title = CleanGameText((field.GetValue(card) as Label)?.text);
+                if (LooksLikeTitle(title))
+                    return title;
+            }
+
+            // Fall back to the visible card labels, excluding the rarity/NEW/
+            // description labels so the title matches what the player sees.
+            foreach (var field in fields)
+            {
+                if (!typeof(VisualElement).IsAssignableFrom(field.FieldType))
+                    continue;
+                var element = field.GetValue(card) as VisualElement;
+                string title = FindTitleInVisualTree(element, 0);
+                if (LooksLikeTitle(title))
+                    return title;
+            }
+            return null;
+        }
+
+        private static string FindTitleInVisualTree(VisualElement element, int depth)
+        {
+            if (element == null || depth > 12)
+                return null;
+            if (element is Label label)
+            {
+                string value = CleanGameText(label.text);
+                if (LooksLikeTitle(value))
+                    return value;
+            }
+            for (int i = 0; i < element.childCount; i++)
+            {
+                string value = FindTitleInVisualTree(element[i], depth + 1);
+                if (LooksLikeTitle(value))
+                    return value;
+            }
+            return null;
+        }
+
+        private static string CleanGameText(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+            return Regex.Replace(value, "<[^>]+>", "").Trim();
+        }
+
+        private static bool LooksLikeTitle(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return false;
+            value = CleanGameText(value);
+            if (string.IsNullOrWhiteSpace(value) || value.Length > 65 ||
+                value == "NEW" || value == "Common" || value == "Uncommon" ||
+                value == "Rare" || value == "Epic" || value == "Legendary" ||
+                value.Contains(":") || value.Contains(">") || value.Contains("%"))
+                return false;
+            // Internal identifiers look like CRIT_DAMAGE, whereas real names
+            // are normally title-cased and contain spaces.
+            if (value.Contains("_") || value == value.ToUpperInvariant())
+                return false;
+            return true;
+        }
+
+        private static string TruncateTitle(string title)
+        {
+            return title.Length <= 65 ? title : title.Substring(0, 62) + "...";
         }
 
         private static object ReadMember(object instance, string name)
@@ -463,9 +648,13 @@ namespace StonewardsUndoRingSelection
             new[] { typeof(List<RogueLikeUpgradeManager.UpgradeDraftChoice>) })]
         private static class CardsSetupPatch
         {
-            private static void Postfix()
+            private static void Postfix(List<RogueLikeUpgradeManager.UpgradeDraftChoice> upgradeDraftChoices)
             {
-                // After opening the screen OR rerolling, an old unconfirmed choice must not survive.
+                if (_restoringButtons)
+                    return; // Our UI-only restore must not clear its own saved offers.
+                _shownChoices = upgradeDraftChoices == null ? null :
+                    new List<RogueLikeUpgradeManager.UpgradeDraftChoice>(upgradeDraftChoices);
+                // Opening or rerolling invalidates any previous unconfirmed selection.
                 Cancel();
             }
         }
@@ -475,9 +664,11 @@ namespace StonewardsUndoRingSelection
         {
             private static void Postfix(BaseMenu __instance)
             {
-                if (__instance is RogueLikeUpgradeMenu && _pending != null &&
-                    ReferenceEquals(__instance, _pending.Menu))
+                if (!(__instance is RogueLikeUpgradeMenu))
+                    return;
+                if (_pending != null && ReferenceEquals(__instance, _pending.Menu))
                     Cancel();
+                _shownChoices = null;
             }
         }
     }
