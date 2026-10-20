@@ -22,11 +22,7 @@ namespace StonewardsUndoRingSelection
         private static ConfigEntry<bool> _enabled;
         private Harmony _harmony;
         private static MethodInfo _onUpgradeClicked;
-        private static bool _replaying;
         private static PendingChoice _pending;
-        // Exact offers currently displayed by the game. Reusing them is not a reroll.
-        private static List<RogueLikeUpgradeManager.UpgradeDraftChoice> _shownChoices;
-        private static bool _restoringButtons;
 
         private sealed class PendingChoice
         {
@@ -40,7 +36,7 @@ namespace StonewardsUndoRingSelection
         {
             _plugin = this;
             _enabled = Config.Bind("General", "Enabled", true,
-                "Require confirmation before choosing a level-up ring. Cancel or choose another ring before confirming.");
+                "Confirm a manually clicked ring before the game's click animation/selection runs. Cancel or choose another ring.");
 
             _onUpgradeClicked = AccessTools.Method(typeof(RogueLikeUpgradeMenu), "OnUpgradeClicked");
             if (_onUpgradeClicked == null)
@@ -57,7 +53,8 @@ namespace StonewardsUndoRingSelection
                 var signatures = new List<string>();
                 foreach (var parameter in parameters)
                     signatures.Add(parameter.ParameterType.Name + " " + parameter.Name);
-                Logger.LogInfo("Undo Ring Selection 0.1.0 loaded. OnUpgradeClicked(" + string.Join(", ", signatures) + ")");
+                Logger.LogInfo("Undo Ring Selection 0.1.0 loaded. Native callback (" +
+                    string.Join(", ", signatures) + "); card clicks intercepted before PerformAction.");
             }
             catch (Exception ex)
             {
@@ -75,8 +72,9 @@ namespace StonewardsUndoRingSelection
 
         private static bool Intercept(RogueLikeUpgradeMenu menu, object[] args)
         {
-            // The vanilla method runs only when the player has explicitly confirmed.
-            if (_replaying || _enabled == null || !_enabled.Value || menu == null || menu.IsUpgradeSelected)
+            // Only manual card click/submit events are intercepted now.
+            // No native card action/tween has been started at this point.
+            if (_enabled == null || !_enabled.Value || menu == null || menu.IsUpgradeSelected)
                 return true;
 
             try
@@ -378,13 +376,13 @@ namespace StonewardsUndoRingSelection
             if (choice == null || !ReferenceEquals(choice.Menu, menu))
                 return;
 
-            // OnUpgradeClicked can be private. Replay the *same* event with its original arguments,
-            // without manually touching upgrades, rerolls, stats, network commands, or save state.
-            _replaying = true;
             try
             {
+                // Call the native ring handler only AFTER the player confirms.
+                // Do not invoke UpgradeButton.PerformAction here: it is responsible
+                // for the premature outline and click tween in the old implementation.
                 _onUpgradeClicked.Invoke(menu, choice.Args);
-                _plugin.Logger.LogInfo("Confirmed a ring through vanilla OnUpgradeClicked.");
+                _plugin.Logger.LogInfo("Confirmed ring through native OnUpgradeClicked.");
                 Cancel();
             }
             catch (TargetInvocationException ex)
@@ -395,68 +393,48 @@ namespace StonewardsUndoRingSelection
             {
                 _plugin.Logger.LogError("Could not confirm selected ring: " + ex);
             }
-            finally
-            {
-                _replaying = false;
-            }
         }
 
-        private static void Cancel(bool resetNativeSelection = false)
+        private static void Cancel()
         {
             var choice = _pending;
             _pending = null;
+            // No need to undo the game's card state: OnClicked was intercepted
+            // BEFORE PerformAction, so clickTween/ShowOutline never ran.
             if (choice?.Panel != null)
                 choice.Panel.RemoveFromHierarchy();
-
-            // Vanilla remembers which card was focused/selected even when our
-            // confirmation panel disappears. Only an explicit CANCEL resets it.
-            if (resetNativeSelection && choice?.Menu != null)
-                RestoreOriginalOffers(choice.Menu);
         }
 
-        private static void RestoreOriginalOffers(RogueLikeUpgradeMenu menu)
+        private static bool InterceptCard(object card)
         {
-            if (_restoringButtons || menu == null || !menu.IsOpen ||
-                menu.IsUpgradeSelected || _shownChoices == null || _shownChoices.Count == 0)
-                return;
+            if (_enabled == null || !_enabled.Value || card == null)
+                return true;
 
             try
             {
-                // Reinitialise the existing buttons with EXACTLY the same offers.
-                // Setup updates presentation/state; GenerateThreeChoices, ApplyUpgrade,
-                // reroll and network commands are deliberately NOT called.
-                var popup = AccessTools.Field(typeof(RogueLikeUpgradeMenu),
-                    "upgradePopupController")?.GetValue(menu) as UpgradePopupController;
-                if (popup == null)
-                {
-                    _plugin.Logger.LogWarning("Could not reset ring focus: UpgradePopupController not found.");
-                    return;
-                }
+                var menu = ReadMember(card, "_upgradeMenu") as RogueLikeUpgradeMenu;
+                if (menu == null || !menu.IsOpen || menu.IsUpgradeSelected)
+                    return true;
 
-                _restoringButtons = true;
-                popup.Setup(new List<RogueLikeUpgradeManager.UpgradeDraftChoice>(_shownChoices));
+                // Honor the native guards for a draft that is still animating,
+                // so clicking during a reroll cannot confirm a hidden card.
+                if (ReadMember(card, "isShowing") is bool showing && showing)
+                    return true;
+                if (ReadMember(card, "isHiding") is bool hiding && hiding)
+                    return true;
 
-                // The original button callback may disable native click handling
-                // before OnUpgradeClicked is intercepted. Restore it as well so
-                // the next ring can be picked with a single click.
-                AccessTools.Method(typeof(RogueLikeUpgradeMenu), "EnableOptions",
-                    new[] { typeof(bool) })?.Invoke(menu, new object[] { true });
+                var boxedChoice = ReadMember(card, "DraftChoice");
+                if (!(boxedChoice is RogueLikeUpgradeManager.UpgradeDraftChoice draft) || !draft.IsValid)
+                    return true;
 
-                // A focused UI Toolkit element can keep an outline even after
-                // the card data has been reset; release the focused element too.
-                var root = menu.rogueLikeUpgradeScreen;
-                var focused = root?.panel?.focusController?.focusedElement as Focusable;
-                focused?.Blur();
-
-                _plugin.Logger.LogInfo("Cancelled ring choice; original offer buttons and focus restored.");
+                // ClickEvent itself proves that the player clicked this card.
+                // Unlike PerformAction, do not gate on its delayed isHovered flag.
+                return Intercept(menu, new object[] { draft });
             }
             catch (Exception ex)
             {
-                _plugin.Logger.LogWarning("Could not completely restore original ring offer UI: " + ex);
-            }
-            finally
-            {
-                _restoringButtons = false;
+                _plugin?.Logger.LogError("Could not intercept native card click: " + ex);
+                return true; // Fail open: preserve the vanilla selection path.
             }
         }
 
@@ -631,12 +609,39 @@ namespace StonewardsUndoRingSelection
             catch { return null; }
         }
 
-        [HarmonyPatch(typeof(RogueLikeUpgradeMenu), "OnUpgradeClicked")]
-        private static class RingClickedPatch
+        // Patch the actual UI event handler, not the menu's final choice callback.
+        // PerformAction starts clickTween -> ShowOutline(true) before it invokes the
+        // menu callback, which is why cancelling used to leave a stuck outline.
+        [HarmonyPatch]
+        private static class CardClickPatch
         {
-            private static bool Prefix(RogueLikeUpgradeMenu __instance, object[] __args)
+            private static MethodBase TargetMethod()
             {
-                return Intercept(__instance, __args);
+                var type = AccessTools.Inner(typeof(UpgradePopupController), "UpgradeButton");
+                return AccessTools.Method(type, "OnClicked", new[] { typeof(ClickEvent) });
+            }
+
+            private static bool Prefix(object __instance)
+            {
+                return InterceptCard(__instance);
+            }
+        }
+
+        [HarmonyPatch]
+        private static class CardSubmitPatch
+        {
+            private static MethodBase TargetMethod()
+            {
+                var type = AccessTools.Inner(typeof(UpgradePopupController), "UpgradeButton");
+                return AccessTools.Method(type, "OnSubmitted", new[] { typeof(NavigationSubmitEvent) });
+            }
+
+            private static bool Prefix(object __instance, NavigationSubmitEvent evt)
+            {
+                if (InterceptCard(__instance))
+                    return true;
+                evt?.StopPropagation(); // Matches the native OnSubmitted behavior.
+                return false;
             }
         }
 
@@ -654,13 +659,9 @@ namespace StonewardsUndoRingSelection
             new[] { typeof(List<RogueLikeUpgradeManager.UpgradeDraftChoice>) })]
         private static class CardsSetupPatch
         {
-            private static void Postfix(List<RogueLikeUpgradeManager.UpgradeDraftChoice> upgradeDraftChoices)
+            private static void Postfix()
             {
-                if (_restoringButtons)
-                    return; // Our UI-only restore must not clear its own saved offers.
-                _shownChoices = upgradeDraftChoices == null ? null :
-                    new List<RogueLikeUpgradeManager.UpgradeDraftChoice>(upgradeDraftChoices);
-                // Opening or rerolling invalidates any previous unconfirmed selection.
+                // Opening/rerolling a draft invalidates our pending manual click.
                 Cancel();
             }
         }
@@ -674,7 +675,6 @@ namespace StonewardsUndoRingSelection
                     return;
                 if (_pending != null && ReferenceEquals(__instance, _pending.Menu))
                     Cancel();
-                _shownChoices = null;
             }
         }
     }
