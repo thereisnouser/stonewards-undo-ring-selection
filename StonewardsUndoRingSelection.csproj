@@ -23,6 +23,10 @@
       <HintPath>$(BepInExCoreDir)\0Harmony.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>$(GameDir)\Stonewards_Data\Managed\UnityEngine.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>$(GameDir)\Stonewards_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
       <Private>false</Private>
