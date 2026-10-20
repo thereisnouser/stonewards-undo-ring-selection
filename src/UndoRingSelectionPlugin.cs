@@ -436,6 +436,12 @@ namespace StonewardsUndoRingSelection
                 _restoringButtons = true;
                 popup.Setup(new List<RogueLikeUpgradeManager.UpgradeDraftChoice>(_shownChoices));
 
+                // The original button callback may disable native click handling
+                // before OnUpgradeClicked is intercepted. Restore it as well so
+                // the next ring can be picked with a single click.
+                AccessTools.Method(typeof(RogueLikeUpgradeMenu), "EnableOptions",
+                    new[] { typeof(bool) })?.Invoke(menu, new object[] { true });
+
                 // A focused UI Toolkit element can keep an outline even after
                 // the card data has been reset; release the focused element too.
                 var root = menu.rogueLikeUpgradeScreen;
