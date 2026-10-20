@@ -224,7 +224,7 @@ namespace StonewardsUndoRingSelection
 
             var confirm = CreateGameButton("CONFIRM", () => Confirm(choice.Menu),
                 _confirmFrame, _confirmHoverFrame);
-            var cancel = CreateGameButton("CANCEL", () => Cancel(true),
+            var cancel = CreateGameButton("CANCEL", Cancel,
                 _cancelFrame, _cancelHoverFrame);
             buttons.Add(confirm);
             buttons.Add(cancel);
