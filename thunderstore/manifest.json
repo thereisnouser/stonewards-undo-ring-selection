@@ -1,6 +1,6 @@
 {
   "name": "UndoRingSelection",
-  "version_number": "0.1.0",
+  "version_number": "0.1.1",
   "website_url": "https://github.com/thereisnouser/stonewards-undo-ring-selection",
   "description": "Confirm ring selections before they are applied and cancel accidental picks in Stonewards.",
   "dependencies": [
