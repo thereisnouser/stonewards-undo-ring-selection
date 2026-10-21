@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1 — Thunderstore icon quality
+
+- Restored the original 256×256 icon artwork without downscaling or palette reduction.
+- No gameplay changes.
+
 ## 0.1.0 — Initial release
 
 - Added a confirmation window before a manually clicked ring is applied.
