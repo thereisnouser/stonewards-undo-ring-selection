@@ -5,3 +5,6 @@
 .vscode/
 .idea/
 *.log
+
+dist/
+ring-selection-inspection.txt
