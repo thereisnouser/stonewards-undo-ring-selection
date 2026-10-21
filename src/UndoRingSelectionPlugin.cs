@@ -16,7 +16,7 @@ namespace StonewardsUndoRingSelection
     {
         public const string PluginGuid = "com.thereisnouser.stonewards.undoringselection";
         public const string PluginName = "Undo Ring Selection";
-        public const string PluginVersion = "0.1.0";
+        public const string PluginVersion = "0.1.1";
 
         private static UndoRingSelectionPlugin _plugin;
         private static ConfigEntry<bool> _enabled;
@@ -53,7 +53,7 @@ namespace StonewardsUndoRingSelection
                 var signatures = new List<string>();
                 foreach (var parameter in parameters)
                     signatures.Add(parameter.ParameterType.Name + " " + parameter.Name);
-                Logger.LogInfo("Undo Ring Selection 0.1.0 loaded. Native callback (" +
+                Logger.LogInfo("Undo Ring Selection " + PluginVersion + " loaded. Native callback (" +
                     string.Join(", ", signatures) + "); card clicks intercepted before PerformAction.");
             }
             catch (Exception ex)
