@@ -1,60 +1,75 @@
-# Undo Ring Selection (0.1.0 prototype)
+# Stonewards Undo Ring Selection
 
-A client-side BepInEx 5 mod to **prevent accidental ring picks** when the level-up choice menu opens under the mouse cursor.
+**Prevent accidental ring picks in Stonewards by confirming your choice before it is applied.** Cancel a pending choice and select another ring without spending a reroll.
 
-## How it works
+## ✨ Features
 
-1. Click a ring: **selection is held**, not committed to the game.
-2. Click a different ring to change your mind.
-3. Click **CONFIRM** to run the game's original ring-selection handler.
-4. Click **CANCEL** to discard the pending choice and return to the ring selection screen.
+- **Confirm before choosing** — clicking a ring opens a confirmation window instead of immediately locking in the upgrade.
+- **Cancel and choose again** — dismiss an accidental choice and pick a different ring with a single click.
+- **Game-matched interface** — a larger confirmation window with pixel-stepped corners, a gold frame, and readable ring names.
+- **Original upgrade handling** — confirmation passes the selected upgrade to Stonewards' normal selection logic.
 
-The mod does **not** remove an upgrade after it has been confirmed. Rolling back already-applied upgrades is unsafe for complex effects and network synchronization.
+## 🎮 How to use
 
-The mod affects only the `RogueLikeUpgradeMenu.OnUpgradeClicked` ring-selection path. It does not change reroll costs, upgrade lists, or save data.
+When the **Upgrade Offers** screen appears:
 
-## Build and install (Windows / PowerShell)
+1. Click the ring you want.
+2. Review the ring name in the confirmation window.
+3. Click **CONFIRM** to apply the selection, or **CANCEL** to return to the same three offers.
+4. You can also click another ring while the confirmation window is open to change the pending selection.
 
-Requirements: Stonewards installed locally, BepInEx 5 installed in an r2modman profile, .NET SDK.
+There is no additional hotkey. **Cancel** does not cost a reroll.
 
-Use a profile named exactly `stonewards-undo-ring-selection`.
+## ⚙️ Configuration
 
-```powershell
-.\build-and-install.ps1 `
-  -GameDir 'F:\Steam\steamapps\common\Stonewards' `
-  -ProfileDir 'C:\path\to\r2modmanPlus-local\Stonewards\profiles\stonewards-undo-ring-selection'
-```
-
-The command compiles against **your locally installed** game binaries and copies `StonewardsUndoRingSelection.dll` to `BepInEx/plugins/StonewardsUndoRingSelection/` within that profile. No original game files are edited.
-
-Check `BepInEx/LogOutput.log` for `Undo Ring Selection 0.1.0 loaded`.
-
-## Test checklist
-
-- Start a level-up ring draft and click ring A. The game should NOT finalize the pick.
-- Click ring B. The confirmation UI should change the pending pick, not spend a reroll.
-- Click CANCEL, then pick ring C and click CONFIRM. Ring C should be applied once.
-- Test on solo and multiplayer as a **client**, then as host.
-- During a pending choice, reroll if allowed. The old pending choice must disappear.
-- Try it with any installed ring-affecting mods, especially UpgradeQueue; do not assume compatibility without testing.
-
-## Known limitations
-
-- **Prototype, not yet built or tested inside the game.** This repo currently contains source and a local build script, not a compiled DLL.
-- The popup is a simple UI Toolkit confirmation panel rather than an exact copy of the game's pixel-art widgets.
-- If the game version changes callback semantics or menu layout, it may require adjustment.
-- Game-controlled auto-picks, timer expiry, and multiplayer network timing need validation in the actual game.
-- If the mod encounters a UI construction error, it allows the game's original click to proceed rather than trapping the player in the upgrade screen.
-
-## Configuration
-
-`BepInEx/config/com.thereisnouser.stonewards.undoringselection.cfg`:
+BepInEx creates `BepInEx/config/com.thereisnouser.stonewards.undoringselection.cfg` with this option:
 
 ```ini
 [General]
 Enabled = true
 ```
 
-## Credits
+Set `Enabled = false` to restore normal ring-click behavior.
 
-Based on observations of the game's API from the public source of [UpgradeQueue](https://github.com/darkharasho/stonewards-upgrade-queue) and the existing Stonewards modding approach. Independent implementation.
+## 📦 Installation
+
+Install **UndoRingSelection** using **r2modman** or another compatible Thunderstore mod manager, then launch **Stonewards** through the manager. The Thunderstore package declares **BepInExPack** as a dependency.
+
+## 🔧 Compatibility
+
+- **Game:** Stonewards **0.2.3** (tested locally).
+- **Mod loader:** BepInEx 5.
+- **Multiplayer:** modifies the local player's selection UI; multiplayer behavior has not been separately verified.
+
+## ⚠️ Known limitations
+
+- **Already confirmed upgrades cannot be undone.** The mod prevents accidental confirmation; it does not remove applied rings.
+- Only manual ring selection is intercepted. The game's automatic selection timer is unchanged.
+- Compatibility with other mods that alter the upgrade-selection screen has not been separately verified.
+
+## 🛠️ Development
+
+### Building
+
+You need a .NET SDK, a local Stonewards installation, and BepInEx 5 in a mod-manager profile. Close the game before installing the rebuilt DLL.
+
+```powershell
+$gameDir = 'C:\Games\Stonewards' # Replace with your Stonewards installation folder.
+$profileDir = Join-Path $env:APPDATA 'r2modmanPlus-local\Stonewards\profiles\stonewards-undo-ring-selection'
+
+.\build-and-install.ps1 -GameDir $gameDir -ProfileDir $profileDir
+```
+
+The script compiles `StonewardsUndoRingSelection.dll` against your installed game's assemblies and places it in the selected profile's `BepInEx/plugins/StonewardsUndoRingSelection/` folder. The development profile name matches the GitHub repository name.
+
+### Implementation
+
+The mod intercepts the ring-card `OnClicked` and `OnSubmitted` handlers before the game's `PerformAction` animation runs. **CONFIRM** calls `RogueLikeUpgradeMenu.OnUpgradeClicked` with the pending draft; **CANCEL** simply discards it. No upgrade rolls are regenerated when cancelling.
+
+## 🔗 Links
+
+[GitHub repository](https://github.com/thereisnouser/stonewards-undo-ring-selection) · [Report an issue](https://github.com/thereisnouser/stonewards-undo-ring-selection/issues) · [Changelog](CHANGELOG.md)
+
+---
+
+*Made by thereisnouser*
