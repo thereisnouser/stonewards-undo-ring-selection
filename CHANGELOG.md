@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — Pending in-game verification
+
+- Center the confirmation window on the upgrade-selection screen.
+- Require confirmation for manually clicking **SKIP** before the game consumes a skip.
+- Keep the previous ring-confirmation flow and allow **CANCEL** to leave the current offers available.
+
 ## 0.1.1 — Thunderstore icon quality
 
 - Restored the original 256×256 icon artwork without downscaling or palette reduction.
