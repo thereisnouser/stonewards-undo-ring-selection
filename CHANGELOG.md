@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — Confirmation dialog styling
+
+- Darkened the upgrade screen behind the confirmation dialog without blocking clicks outside the dialog.
+- Increased the centered dialog to 760×250 and strengthened its gold frame, burgundy header, and text contrast.
+- Enlarged the **CONFIRM** and **CANCEL** buttons and enhanced their hover colors.
+- No changes to ring selection, skip behavior, or upgrade costs.
+
 ## 0.1.2 — Centered confirmation and skip protection
 
 - Center the confirmation window on the upgrade-selection screen.
