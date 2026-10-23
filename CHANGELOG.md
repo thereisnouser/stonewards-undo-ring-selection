@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Pending in-game verification
+## 0.1.2 — Centered confirmation and skip protection
 
 - Center the confirmation window on the upgrade-selection screen.
 - Require confirmation for manually clicking **SKIP** before the game consumes a skip.
