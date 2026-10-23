@@ -153,10 +153,10 @@ namespace StonewardsUndoRingSelection
         private static Texture2D _cancelFrame;
         private static Texture2D _cancelHoverFrame;
 
-        private static readonly Color FrameGold = new Color(0.72f, 0.64f, 0.48f, 1f);
-        private static readonly Color FrameHoverGold = new Color(0.97f, 0.85f, 0.60f, 1f);
-        private static readonly Color WindowBackground = new Color(19f / 255f, 23f / 255f, 32f / 255f, 0.98f);
-        private static readonly Color HeaderBackground = new Color(76f / 255f, 46f / 255f, 48f / 255f, 1f);
+        private static readonly Color FrameGold = new Color(0.86f, 0.73f, 0.45f, 1f);
+        private static readonly Color FrameHoverGold = new Color(1f, 0.88f, 0.58f, 1f);
+        private static readonly Color WindowBackground = new Color(12f / 255f, 18f / 255f, 28f / 255f, 0.995f);
+        private static readonly Color HeaderBackground = new Color(92f / 255f, 46f / 255f, 50f / 255f, 1f);
 
         private static void EnsurePanel(PendingChoice choice)
         {
@@ -184,11 +184,26 @@ namespace StonewardsUndoRingSelection
             anchor.style.alignItems = Align.Center;
             anchor.style.justifyContent = Justify.Center;
 
+            // Darken the screen without blocking clicks on other ring cards.
+            // This remains behind the panel, and ignores pointer hit testing.
+            var backdrop = new VisualElement
+            {
+                name = "stonewards-undo-ring-selection-backdrop",
+                pickingMode = PickingMode.Ignore
+            };
+            backdrop.style.position = Position.Absolute;
+            backdrop.style.left = 0;
+            backdrop.style.right = 0;
+            backdrop.style.top = 0;
+            backdrop.style.bottom = 0;
+            backdrop.style.backgroundColor = new Color(0f, 0f, 0f, 0.32f);
+            anchor.Add(backdrop);
+
             var panel = new VisualElement { name = "stonewards-undo-ring-selection-confirmation" };
             panel.style.position = Position.Relative;
-            panel.style.width = 680;
+            panel.style.width = 760;
             panel.style.maxWidth = Length.Percent(95);
-            panel.style.height = 230;
+            panel.style.height = 250;
             panel.style.flexShrink = 1;
             panel.style.backgroundColor = Color.clear;
             ApplyPixelFrame(panel, _windowFrame);
@@ -200,7 +215,7 @@ namespace StonewardsUndoRingSelection
             header.style.left = 12;
             header.style.right = 12;
             header.style.top = 12;
-            header.style.height = 53;
+            header.style.height = 57;
             header.style.backgroundColor = HeaderBackground;
             panel.Add(header);
 
@@ -208,8 +223,8 @@ namespace StonewardsUndoRingSelection
             divider.style.position = Position.Absolute;
             divider.style.left = 11;
             divider.style.right = 11;
-            divider.style.top = 65;
-            divider.style.height = 2;
+            divider.style.top = 69;
+            divider.style.height = 3;
             divider.style.backgroundColor = FrameGold;
             panel.Add(divider);
 
@@ -219,11 +234,11 @@ namespace StonewardsUndoRingSelection
             title.style.position = Position.Absolute;
             title.style.left = 22;
             title.style.right = 22;
-            title.style.top = 16;
-            title.style.height = 44;
-            title.style.fontSize = 25;
+            title.style.top = 17;
+            title.style.height = 49;
+            title.style.fontSize = 27;
             title.style.unityFontStyleAndWeight = FontStyle.Bold;
-            title.style.color = new Color(1f, 0.88f, 0.66f, 1f);
+            title.style.color = new Color(1f, 0.90f, 0.67f, 1f);
             title.style.unityTextAlign = TextAnchor.MiddleCenter;
             panel.Add(title);
 
@@ -233,11 +248,11 @@ namespace StonewardsUndoRingSelection
             description.style.position = Position.Absolute;
             description.style.left = 28;
             description.style.right = 28;
-            description.style.top = 81;
-            description.style.height = 37;
-            description.style.fontSize = 23;
+            description.style.top = 90;
+            description.style.height = 40;
+            description.style.fontSize = 24;
             description.style.unityFontStyleAndWeight = FontStyle.Bold;
-            description.style.color = new Color(0.99f, 0.98f, 0.92f, 1f);
+            description.style.color = new Color(1f, 1f, 0.95f, 1f);
             description.style.unityTextAlign = TextAnchor.MiddleCenter;
             panel.Add(description);
 
@@ -246,11 +261,11 @@ namespace StonewardsUndoRingSelection
             hint.style.position = Position.Absolute;
             hint.style.left = 25;
             hint.style.right = 25;
-            hint.style.top = 124;
-            hint.style.height = 25;
-            hint.style.fontSize = 17;
+            hint.style.top = 137;
+            hint.style.height = 29;
+            hint.style.fontSize = 18;
             hint.style.unityFontStyleAndWeight = FontStyle.Bold;
-            hint.style.color = new Color(0.76f, 0.77f, 0.78f, 1f);
+            hint.style.color = new Color(0.82f, 0.82f, 0.80f, 1f);
             hint.style.unityTextAlign = TextAnchor.MiddleCenter;
             panel.Add(hint);
 
@@ -258,8 +273,8 @@ namespace StonewardsUndoRingSelection
             buttons.style.position = Position.Absolute;
             buttons.style.left = 14;
             buttons.style.right = 14;
-            buttons.style.bottom = 15;
-            buttons.style.height = 53;
+            buttons.style.bottom = 17;
+            buttons.style.height = 61;
             buttons.style.flexDirection = FlexDirection.Row;
             buttons.style.alignItems = Align.Center;
             buttons.style.justifyContent = Justify.Center;
@@ -285,9 +300,9 @@ namespace StonewardsUndoRingSelection
         {
             var button = new Button(onClick) { text = text };
             button.RemoveFromClassList("unity-button");
-            button.style.width = 216;
+            button.style.width = 232;
             button.style.maxWidth = Length.Percent(46);
-            button.style.height = 49;
+            button.style.height = 54;
             button.style.marginLeft = 8;
             button.style.marginRight = 8;
             button.style.paddingLeft = 5;
@@ -295,7 +310,7 @@ namespace StonewardsUndoRingSelection
             button.style.paddingTop = 0;
             button.style.paddingBottom = 0;
             button.style.flexShrink = 1;
-            button.style.fontSize = 22;
+            button.style.fontSize = 23;
             button.style.unityFontStyleAndWeight = FontStyle.Bold;
             button.style.unityTextAlign = TextAnchor.MiddleCenter;
             button.style.color = new Color(0.98f, 0.95f, 0.87f, 1f);
@@ -339,13 +354,13 @@ namespace StonewardsUndoRingSelection
 
             _windowFrame = CreateFrameTexture(WindowBackground, FrameGold, "UndoRingSelection_Window");
             _confirmFrame = CreateFrameTexture(
-                new Color(0.20f, 0.29f, 0.27f, 1f), FrameGold, "UndoRingSelection_Confirm");
+                new Color(0.22f, 0.38f, 0.30f, 1f), FrameGold, "UndoRingSelection_Confirm");
             _confirmHoverFrame = CreateFrameTexture(
-                new Color(0.28f, 0.38f, 0.32f, 1f), FrameHoverGold, "UndoRingSelection_ConfirmHover");
+                new Color(0.30f, 0.48f, 0.38f, 1f), FrameHoverGold, "UndoRingSelection_ConfirmHover");
             _cancelFrame = CreateFrameTexture(
-                new Color(0.28f, 0.23f, 0.27f, 1f), FrameGold, "UndoRingSelection_Cancel");
+                new Color(0.36f, 0.25f, 0.30f, 1f), FrameGold, "UndoRingSelection_Cancel");
             _cancelHoverFrame = CreateFrameTexture(
-                new Color(0.38f, 0.28f, 0.33f, 1f), FrameHoverGold, "UndoRingSelection_CancelHover");
+                new Color(0.46f, 0.31f, 0.37f, 1f), FrameHoverGold, "UndoRingSelection_CancelHover");
         }
 
         private static int StairInset(int distanceFromEdge)
