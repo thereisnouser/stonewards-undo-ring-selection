@@ -1,22 +1,23 @@
 # Stonewards Undo Ring Selection
 
-**Prevent accidental ring picks by confirming your choice before it is applied.** Cancel a pending choice and pick another ring without spending a reroll.
+**Prevent accidental ring picks and skips by confirming your actions before they are applied.** Cancel an unconfirmed selection without spending a reroll or a skip.
 
 ## ✨ Features
 
 - **Selection confirmation** — clicking a ring opens a confirmation window before the upgrade is applied.
 - **Cancel and retry** — return to the same ring offers and choose another ring with a single click.
-- **Matching game UI** — bold labels, readable ring names, and a gold pixel-art frame.
+- **Skip confirmation** — confirm a manual **SKIP** before it consumes a skip.
+- **Centered game-style UI** — a centered window with bold labels, readable ring names, and a gold pixel-art frame.
 
 ## 🎮 How to use
 
-On the **Upgrade Offers** screen, click a ring to open the confirmation window. Press **CONFIRM** to select it or **CANCEL** to return to the three offers. You can also click another ring before confirming to change your choice.
+On the **Upgrade Offers** screen, click a ring to open the centered confirmation window. Press **CONFIRM** to select it or **CANCEL** to keep the same offers. You can also click another ring before confirming.
 
-There is **no extra hotkey**. Cancelling does not use a reroll.
+Press the game's **SKIP** button to open a skip confirmation. Press **CONFIRM** to skip or **CANCEL** to return to the offers. There is **no extra hotkey**. Cancelling spends neither a reroll nor a skip.
 
 ## ⚙️ Configuration
 
-Enabled by default. Set `Enabled = false` in `BepInEx/config/com.thereisnouser.stonewards.undoringselection.cfg` to disable the confirmation step.
+Enabled by default. Set `Enabled = false` in `BepInEx/config/com.thereisnouser.stonewards.undoringselection.cfg` to disable confirmation for ring choices and **SKIP**.
 
 ## 📦 Installation
 
@@ -27,6 +28,7 @@ Install **UndoRingSelection** using **r2modman** or another compatible Thunderst
 - **Game:** Stonewards **0.2.3** (tested locally).
 - **Mod loader:** BepInEx 5.
 - **Multiplayer:** modifies the local player's selection UI; multiplayer behavior has not been separately verified.
+- **Release 0.1.2:** centered popup and skip confirmation require in-game verification.
 
 ## ⚠️ Known limitations
 
