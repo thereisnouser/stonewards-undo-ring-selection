@@ -22,26 +22,32 @@ namespace StonewardsUndoRingSelection
         private static ConfigEntry<bool> _enabled;
         private Harmony _harmony;
         private static MethodInfo _onUpgradeClicked;
+        private static MethodInfo _onSkipClicked;
+        private static bool _confirmingSkip;
         private static PendingChoice _pending;
 
         private sealed class PendingChoice
         {
             internal RogueLikeUpgradeMenu Menu;
             internal object[] Args;
+            internal bool IsSkip;
             internal VisualElement Panel;
+            internal Label Title;
             internal Label Description;
+            internal Label Hint;
         }
 
         private void Awake()
         {
             _plugin = this;
             _enabled = Config.Bind("General", "Enabled", true,
-                "Confirm a manually clicked ring before the game's click animation/selection runs. Cancel or choose another ring.");
+                "Require confirmation before manually selecting a ring or skipping an upgrade choice.");
 
             _onUpgradeClicked = AccessTools.Method(typeof(RogueLikeUpgradeMenu), "OnUpgradeClicked");
-            if (_onUpgradeClicked == null)
+            _onSkipClicked = AccessTools.Method(typeof(RogueLikeUpgradeMenu), "OnSkipClicked", Type.EmptyTypes);
+            if (_onUpgradeClicked == null || _onSkipClicked == null)
             {
-                Logger.LogError("RogueLikeUpgradeMenu.OnUpgradeClicked not found. Plugin disabled for this game version.");
+                Logger.LogError("One of Stonewards' upgrade/skip callbacks was not found. Plugin disabled for this game version.");
                 return;
             }
 
@@ -85,10 +91,12 @@ namespace StonewardsUndoRingSelection
                 if (_pending == null)
                     _pending = new PendingChoice { Menu = menu };
 
+                _pending.IsSkip = false;
                 _pending.Args = args != null ? (object[])args.Clone() : Array.Empty<object>();
                 EnsurePanel(_pending);
-                if (_pending.Description != null)
-                    _pending.Description.text = "RING: " + DescribeSelection(menu, _pending.Args);
+                _pending.Title.text = "CONFIRM RING SELECTION";
+                _pending.Description.text = "RING: " + DescribeSelection(menu, _pending.Args);
+                _pending.Hint.text = "CHOOSE ANOTHER RING OR CANCEL THIS PICK";
 
                 _plugin.Logger.LogDebug("Ring click held for confirmation; args=" + _pending.Args.Length);
                 return false;
@@ -98,6 +106,40 @@ namespace StonewardsUndoRingSelection
                 _plugin.Logger.LogError("Ring confirmation failed; allowing vanilla click: " + ex);
                 Cancel();
                 return true; // Fail open: never block ring selection if the mod UI is broken.
+            }
+        }
+
+        private static bool InterceptSkip(RogueLikeUpgradeMenu menu)
+        {
+            // OnSkipClicked sends CmdSkipUsed immediately. Do not allow it through
+            // until the player explicitly confirms.
+            if (_confirmingSkip || _enabled == null || !_enabled.Value ||
+                menu == null || !menu.IsOpen || menu.IsUpgradeSelected)
+                return true;
+
+            try
+            {
+                if (_pending != null && !ReferenceEquals(_pending.Menu, menu))
+                    Cancel();
+
+                if (_pending == null)
+                    _pending = new PendingChoice { Menu = menu };
+
+                _pending.IsSkip = true;
+                _pending.Args = null;
+                EnsurePanel(_pending);
+                _pending.Title.text = "CONFIRM SKIPPING UPGRADE";
+                _pending.Description.text = "SKIP THIS RING SELECTION?";
+                _pending.Hint.text = "CANCEL TO KEEP YOUR CURRENT UPGRADE OFFERS";
+
+                _plugin.Logger.LogDebug("Manual skip held for confirmation.");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _plugin.Logger.LogError("Skip confirmation failed; allowing vanilla skip: " + ex);
+                Cancel();
+                return true; // Fail open if the game UI changed.
             }
         }
 
@@ -127,8 +169,8 @@ namespace StonewardsUndoRingSelection
 
             EnsureFrameTextures();
 
-            // This full-width anchor centers the popup while remaining transparent to
-            // mouse input outside the actual window. Works at 1080p and 1440p.
+            // A full-screen UI Toolkit anchor centers the popup both vertically
+            // and horizontally, without stealing clicks outside its child panel.
             var anchor = new VisualElement
             {
                 name = "stonewards-undo-ring-selection-anchor",
@@ -137,7 +179,8 @@ namespace StonewardsUndoRingSelection
             anchor.style.position = Position.Absolute;
             anchor.style.left = 0;
             anchor.style.right = 0;
-            anchor.style.bottom = 18;
+            anchor.style.top = 0;
+            anchor.style.bottom = 0;
             anchor.style.alignItems = Align.Center;
             anchor.style.justifyContent = Justify.Center;
 
@@ -232,7 +275,9 @@ namespace StonewardsUndoRingSelection
             root.Add(anchor);
             // Store the anchor so Cancel removes the entire panel and all controls.
             choice.Panel = anchor;
+            choice.Title = title;
             choice.Description = description;
+            choice.Hint = hint;
         }
 
         private static Button CreateGameButton(string text, Action onClick,
@@ -378,20 +423,34 @@ namespace StonewardsUndoRingSelection
 
             try
             {
-                // Call the native ring handler only AFTER the player confirms.
-                // Do not invoke UpgradeButton.PerformAction here: it is responsible
-                // for the premature outline and click tween in the old implementation.
-                _onUpgradeClicked.Invoke(menu, choice.Args);
-                _plugin.Logger.LogInfo("Confirmed ring through native OnUpgradeClicked.");
+                if (choice.IsSkip)
+                {
+                    // The patch on OnSkipClicked must allow only this confirmed call.
+                    // The original method then handles skip usage, network commands,
+                    // and menu closing exactly as in unmodded Stonewards.
+                    _confirmingSkip = true;
+                    _onSkipClicked.Invoke(menu, null);
+                    _plugin.Logger.LogInfo("Confirmed skip through native OnSkipClicked.");
+                }
+                else
+                {
+                    // Ring selection also commits only after confirmation.
+                    _onUpgradeClicked.Invoke(menu, choice.Args);
+                    _plugin.Logger.LogInfo("Confirmed ring through native OnUpgradeClicked.");
+                }
                 Cancel();
             }
             catch (TargetInvocationException ex)
             {
-                _plugin.Logger.LogError("Vanilla ring selection threw: " + (ex.InnerException ?? ex));
+                _plugin.Logger.LogError("Vanilla upgrade/skip callback threw: " + (ex.InnerException ?? ex));
             }
             catch (Exception ex)
             {
-                _plugin.Logger.LogError("Could not confirm selected ring: " + ex);
+                _plugin.Logger.LogError("Could not confirm upgrade/skip choice: " + ex);
+            }
+            finally
+            {
+                _confirmingSkip = false;
             }
         }
 
@@ -642,6 +701,15 @@ namespace StonewardsUndoRingSelection
                     return true;
                 evt?.StopPropagation(); // Matches the native OnSubmitted behavior.
                 return false;
+            }
+        }
+
+        [HarmonyPatch(typeof(RogueLikeUpgradeMenu), "OnSkipClicked")]
+        private static class SkipClickedPatch
+        {
+            private static bool Prefix(RogueLikeUpgradeMenu __instance)
+            {
+                return InterceptSkip(__instance);
             }
         }
 
