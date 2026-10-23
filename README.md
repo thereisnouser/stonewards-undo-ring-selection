@@ -1,24 +1,25 @@
 # Stonewards Undo Ring Selection
 
-**Prevent accidental ring picks in Stonewards by confirming your choice before it is applied.** Cancel a pending choice and select another ring without spending a reroll.
+**Prevent accidental ring picks and skips in Stonewards by confirming your actions before they are applied.** Cancel an unconfirmed ring choice or skip without using a reroll or a skip.
 
 ## ✨ Features
 
 - **Confirm before choosing** — clicking a ring opens a confirmation window instead of immediately locking in the upgrade.
 - **Cancel and choose again** — dismiss an accidental choice and pick a different ring with a single click.
-- **Game-matched interface** — a larger confirmation window with pixel-stepped corners, a gold frame, and readable ring names.
-- **Original upgrade handling** — confirmation passes the selected upgrade to Stonewards' normal selection logic.
+- **Skip confirmation** — manually pressing **SKIP** also asks for confirmation before using a skip.
+- **Centered game-style interface** — a large confirmation window centered on the screen, with pixel-stepped corners, a gold frame, and readable ring names.
+- **Original upgrade handling** — confirmation uses Stonewards' existing selection or skip logic.
 
 ## 🎮 How to use
 
 When the **Upgrade Offers** screen appears:
 
-1. Click the ring you want.
-2. Review the ring name in the confirmation window.
-3. Click **CONFIRM** to apply the selection, or **CANCEL** to return to the same three offers.
-4. You can also click another ring while the confirmation window is open to change the pending selection.
+1. Click a ring to open the centered confirmation window.
+2. Click **CONFIRM** to select that ring, or **CANCEL** to keep the current offers.
+3. You can also click another ring before confirming to change the pending choice.
+4. Click the game's **SKIP** button to open a separate skip confirmation. **CONFIRM** uses the skip; **CANCEL** returns to the current ring offers without using it.
 
-There is no additional hotkey. **Cancel** does not cost a reroll.
+There is no additional hotkey. Cancelling does not spend a reroll or a skip.
 
 ## ⚙️ Configuration
 
@@ -29,7 +30,7 @@ BepInEx creates `BepInEx/config/com.thereisnouser.stonewards.undoringselection.c
 Enabled = true
 ```
 
-Set `Enabled = false` to restore normal ring-click behavior.
+Set `Enabled = false` to disable confirmation for both ring clicks and **SKIP**.
 
 ## 📦 Installation
 
@@ -40,6 +41,7 @@ Install **UndoRingSelection** using **r2modman** or another compatible Thunderst
 - **Game:** Stonewards **0.2.3** (tested locally).
 - **Mod loader:** BepInEx 5.
 - **Multiplayer:** modifies the local player's selection UI; multiplayer behavior has not been separately verified.
+- **Release 0.1.2:** the centered popup and skip-confirmation changes still need in-game verification.
 
 ## ⚠️ Known limitations
 
@@ -64,7 +66,7 @@ The script compiles `StonewardsUndoRingSelection.dll` against your installed gam
 
 ### Implementation
 
-The mod intercepts the ring-card `OnClicked` and `OnSubmitted` handlers before the game's `PerformAction` animation runs. **CONFIRM** calls `RogueLikeUpgradeMenu.OnUpgradeClicked` with the pending draft; **CANCEL** simply discards it. No upgrade rolls are regenerated when cancelling.
+The mod intercepts the ring-card `OnClicked` and `OnSubmitted` handlers before the game's `PerformAction` animation runs. A Harmony prefix also intercepts `RogueLikeUpgradeMenu.OnSkipClicked` before its network command. **CONFIRM** invokes the appropriate native handler; **CANCEL** discards the pending action without generating new ring offers.
 
 ## 🔗 Links
 
