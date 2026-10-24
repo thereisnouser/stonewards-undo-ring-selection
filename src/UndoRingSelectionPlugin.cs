@@ -201,9 +201,9 @@ namespace StonewardsUndoRingSelection
 
             var panel = new VisualElement { name = "stonewards-undo-ring-selection-confirmation" };
             panel.style.position = Position.Relative;
-            panel.style.width = 760;
+            panel.style.width = 620;
             panel.style.maxWidth = Length.Percent(95);
-            panel.style.height = 250;
+            panel.style.height = 270;
             panel.style.flexShrink = 1;
             panel.style.backgroundColor = Color.clear;
             ApplyPixelFrame(panel, _windowFrame);
