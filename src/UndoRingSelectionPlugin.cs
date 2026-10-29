@@ -178,7 +178,8 @@ namespace StonewardsUndoRingSelection
             EnsureFrameTextures();
 
             // The confirmation fills the UPGRADE OFFERS container, not the
-            // screen. Ignore pointer hits outside the panel itself.
+            // screen. Ignore pointer hits outside the panel itself; the dialog
+            // itself is positioned from the exact 50%/50% center below.
             var anchor = new VisualElement
             {
                 name = "stonewards-undo-ring-selection-anchor",
@@ -189,11 +190,11 @@ namespace StonewardsUndoRingSelection
             anchor.style.right = 0;
             anchor.style.top = 0;
             anchor.style.bottom = 0;
-            anchor.style.alignItems = Align.Center;
-            anchor.style.justifyContent = Justify.Center;
+            // Position the popup explicitly; anchor flex layout is not used
+            // to determine the modal's center.
 
-            // Darken the upgrade offers behind the confirmation window while
-            // retaining the native click handlers for visible ring cards.
+            // Strong modal backdrop: suppress visual competition from cards
+            // and buttons, while preserving the underlying click handlers.
             var backdrop = new VisualElement
             {
                 name = "stonewards-undo-ring-selection-backdrop",
@@ -204,11 +205,16 @@ namespace StonewardsUndoRingSelection
             backdrop.style.right = 0;
             backdrop.style.top = 0;
             backdrop.style.bottom = 0;
-            backdrop.style.backgroundColor = new Color(0f, 0f, 0f, 0.45f);
+            backdrop.style.backgroundColor = new Color(0f, 0f, 0f, 0.75f);
             anchor.Add(backdrop);
 
             var panel = new VisualElement { name = "stonewards-undo-ring-selection-confirmation" };
-            panel.style.position = Position.Relative;
+            panel.style.position = Position.Absolute;
+            // UI Toolkit translates percentages relative to the panel itself,
+            // keeping the exact center of the offers window at any resolution.
+            panel.style.left = Length.Percent(50);
+            panel.style.top = Length.Percent(50);
+            panel.style.translate = new Translate(Length.Percent(-50), Length.Percent(-50));
             panel.style.width = 620;
             panel.style.maxWidth = Length.Percent(95);
             panel.style.height = 270;
