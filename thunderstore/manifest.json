@@ -1,6 +1,6 @@
 {
   "name": "UndoRingSelection",
-  "version_number": "0.1.2",
+  "version_number": "0.2.0",
   "website_url": "https://github.com/thereisnouser/stonewards-undo-ring-selection",
   "description": "Confirm ring selections and skips before committing them in Stonewards.",
   "dependencies": [

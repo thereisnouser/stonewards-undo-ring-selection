@@ -7,7 +7,7 @@
 - **Confirm before choosing** — clicking a ring opens a confirmation window instead of immediately locking in the upgrade.
 - **Cancel and choose again** — dismiss an accidental choice and pick a different ring with a single click.
 - **Skip confirmation** — manually pressing **SKIP** also asks for confirmation before using a skip.
-- **Centered game-style interface** — a large confirmation window centered on the screen, with pixel-stepped corners, a gold frame, and readable ring names.
+- **Centered game-style interface** — a compact window centered within **Upgrade Offers**, with a 75% darkened backdrop, pixel-stepped corners, a gold frame, and readable ring names.
 - **Original upgrade handling** — confirmation uses Stonewards' existing selection or skip logic.
 
 ## 🎮 How to use
@@ -41,7 +41,7 @@ Install **UndoRingSelection** using **r2modman** or another compatible Thunderst
 - **Game:** Stonewards **0.2.3** (tested locally).
 - **Mod loader:** BepInEx 5.
 - **Multiplayer:** modifies the local player's selection UI; multiplayer behavior has not been separately verified.
-- **Release 0.1.2:** the centered popup and skip-confirmation changes still need in-game verification.
+- **Release 0.2.0:** the updated confirmation layout has been visually checked in-game; multiplayer compatibility has not been separately verified.
 
 ## ⚠️ Known limitations
 

@@ -1,14 +1,12 @@
 # Changelog
 
-## Unreleased — Confirmation dialog styling
+## 0.2.0 — Confirmation dialog visual overhaul
 
-- Pin the modal to the exact 50%/50% center of the game's `RogueLikeUpgradePopup` element using UI Toolkit translation.
-- Increase the upgrade-offers backdrop dimming from 45% to 75%, keeping the existing dialog controls interactive.
-- Center the confirmation on the actual `RogueLikeUpgradePopup` panel instead of the full screen.
-- Darkened the upgrade screen behind the confirmation dialog without blocking clicks outside the dialog.
-- Adjusted the centered dialog to 620×270 for a narrower, slightly taller layout and strengthened its gold frame, burgundy header, and text contrast.
-- Enlarged the **CONFIRM** and **CANCEL** buttons and enhanced their hover colors.
-- No changes to ring selection, skip behavior, or upgrade costs.
+- Anchored the confirmation dialog to the game's real `RogueLikeUpgradePopup` container, centered at 50%/50%.
+- Increased backdrop dimming to 75% behind the dialog inside **Upgrade Offers**.
+- Refined dialog proportions to 620×270 with a darker background, brighter gold pixel frame, and a richer burgundy header.
+- Improved text readability and made **CONFIRM** / **CANCEL** buttons larger and more distinct.
+- Preserved the existing ring-selection and skip confirmation logic, including cancellation without consuming a reroll or skip.
 
 ## 0.1.2 — Centered confirmation and skip protection
 
