@@ -167,10 +167,18 @@ namespace StonewardsUndoRingSelection
             if (root == null)
                 throw new InvalidOperationException("rogueLikeUpgradeScreen is unavailable");
 
+            // This is the actual Stonewards UXML element used by
+            // UpgradePopupController (verified against the game assembly).
+            // Anchor to it so the confirmation follows the upgrade offers panel
+            // across resolutions and does not dim Inventory or Stats.
+            VisualElement offers = root.Q<VisualElement>("RogueLikeUpgradePopup");
+            if (offers == null)
+                throw new InvalidOperationException("RogueLikeUpgradePopup was not found in the upgrade UI");
+
             EnsureFrameTextures();
 
-            // A full-screen UI Toolkit anchor centers the popup both vertically
-            // and horizontally, without stealing clicks outside its child panel.
+            // The confirmation fills the UPGRADE OFFERS container, not the
+            // screen. Ignore pointer hits outside the panel itself.
             var anchor = new VisualElement
             {
                 name = "stonewards-undo-ring-selection-anchor",
@@ -184,8 +192,8 @@ namespace StonewardsUndoRingSelection
             anchor.style.alignItems = Align.Center;
             anchor.style.justifyContent = Justify.Center;
 
-            // Darken the screen without blocking clicks on other ring cards.
-            // This remains behind the panel, and ignores pointer hit testing.
+            // Darken the upgrade offers behind the confirmation window while
+            // retaining the native click handlers for visible ring cards.
             var backdrop = new VisualElement
             {
                 name = "stonewards-undo-ring-selection-backdrop",
@@ -196,7 +204,7 @@ namespace StonewardsUndoRingSelection
             backdrop.style.right = 0;
             backdrop.style.top = 0;
             backdrop.style.bottom = 0;
-            backdrop.style.backgroundColor = new Color(0f, 0f, 0f, 0.32f);
+            backdrop.style.backgroundColor = new Color(0f, 0f, 0f, 0.45f);
             anchor.Add(backdrop);
 
             var panel = new VisualElement { name = "stonewards-undo-ring-selection-confirmation" };
@@ -287,7 +295,7 @@ namespace StonewardsUndoRingSelection
             buttons.Add(confirm);
             buttons.Add(cancel);
 
-            root.Add(anchor);
+            offers.Add(anchor);
             // Store the anchor so Cancel removes the entire panel and all controls.
             choice.Panel = anchor;
             choice.Title = title;
