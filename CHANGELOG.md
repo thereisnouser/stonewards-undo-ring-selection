@@ -2,6 +2,8 @@
 
 ## Unreleased — Confirmation dialog styling
 
+- Center the confirmation on the actual `RogueLikeUpgradePopup` panel instead of the full screen.
+- Restrict the 45% backdrop dimming to the upgrade offers panel; leave Inventory and Stats readable.
 - Darkened the upgrade screen behind the confirmation dialog without blocking clicks outside the dialog.
 - Adjusted the centered dialog to 620×270 for a narrower, slightly taller layout and strengthened its gold frame, burgundy header, and text contrast.
 - Enlarged the **CONFIRM** and **CANCEL** buttons and enhanced their hover colors.
