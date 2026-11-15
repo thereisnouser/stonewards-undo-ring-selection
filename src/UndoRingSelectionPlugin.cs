@@ -96,7 +96,7 @@ namespace StonewardsUndoRingSelection
                 EnsurePanel(_pending);
                 _pending.Title.text = "CONFIRM RING SELECTION";
                 _pending.Description.text = "RING: " + DescribeSelection(menu, _pending.Args);
-                _pending.Hint.text = "CHOOSE ANOTHER RING OR CANCEL THIS PICK";
+                _pending.Hint.text = "CANCEL TO CHOOSE ANOTHER RING";
 
                 _plugin.Logger.LogDebug("Ring click held for confirmation; args=" + _pending.Args.Length);
                 return false;
@@ -116,6 +116,11 @@ namespace StonewardsUndoRingSelection
             if (_confirmingSkip || _enabled == null || !_enabled.Value ||
                 menu == null || !menu.IsOpen || menu.IsUpgradeSelected)
                 return true;
+
+            // Lock the current pending decision even if SKIP is triggered via
+            // keyboard/controller while the modal backdrop is visible.
+            if (_pending != null && ReferenceEquals(_pending.Menu, menu))
+                return false;
 
             try
             {
@@ -177,9 +182,9 @@ namespace StonewardsUndoRingSelection
 
             EnsureFrameTextures();
 
-            // The confirmation fills the UPGRADE OFFERS container, not the
-            // screen. Ignore pointer hits outside the panel itself; the dialog
-            // itself is positioned from the exact 50%/50% center below.
+            // Cover the UPGRADE OFFERS container, not the entire screen.
+            // Only the backdrop and dialog pick events; the anchor itself
+            // stays transparent to hit testing.
             var anchor = new VisualElement
             {
                 name = "stonewards-undo-ring-selection-anchor",
@@ -193,12 +198,13 @@ namespace StonewardsUndoRingSelection
             // Position the popup explicitly; anchor flex layout is not used
             // to determine the modal's center.
 
-            // Strong modal backdrop: suppress visual competition from cards
-            // and buttons, while preserving the underlying click handlers.
+            // Strong modal backdrop: darken the offers and absorb pointer
+            // events so clicks cannot reach any underlying ring or SKIP button.
+            // The dialog is added after this backdrop and stays interactive.
             var backdrop = new VisualElement
             {
                 name = "stonewards-undo-ring-selection-backdrop",
-                pickingMode = PickingMode.Ignore
+                pickingMode = PickingMode.Position
             };
             backdrop.style.position = Position.Absolute;
             backdrop.style.left = 0;
@@ -270,7 +276,7 @@ namespace StonewardsUndoRingSelection
             description.style.unityTextAlign = TextAnchor.MiddleCenter;
             panel.Add(description);
 
-            var hint = new Label("CHOOSE ANOTHER RING OR CANCEL THIS PICK");
+            var hint = new Label("CANCEL TO CHOOSE ANOTHER RING");
             hint.pickingMode = PickingMode.Ignore;
             hint.style.position = Position.Absolute;
             hint.style.left = 25;
@@ -503,6 +509,11 @@ namespace StonewardsUndoRingSelection
                 var menu = ReadMember(card, "_upgradeMenu") as RogueLikeUpgradeMenu;
                 if (menu == null || !menu.IsOpen || menu.IsUpgradeSelected)
                     return true;
+
+                // Keyboard/controller submits can bypass pointer hit testing.
+                // Never replace a choice while its confirmation is visible.
+                if (_pending != null && ReferenceEquals(_pending.Menu, menu))
+                    return false;
 
                 // Honor the native guards for a draft that is still animating,
                 // so clicking during a reroll cannot confirm a hidden card.
