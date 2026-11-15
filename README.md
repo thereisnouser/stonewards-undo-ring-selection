@@ -1,76 +1,75 @@
 # Stonewards Undo Ring Selection
 
-**Prevent accidental ring picks and skips in Stonewards by confirming your actions before they are applied.** Cancel an unconfirmed ring choice or skip without using a reroll or a skip.
+**Confirm ring selections and skips before they are applied in Stonewards.** Cancel an accidental action and keep the same offers without spending a reroll or a skip.
 
 ## ✨ Features
 
-- **Confirm before choosing** — clicking a ring opens a confirmation window instead of immediately locking in the upgrade.
-- **Cancel and choose again** — press **CANCEL** to dismiss the pending action, then select a different ring from the same offers.
-- **Skip confirmation** — manually pressing **SKIP** also asks for confirmation before using a skip.
-- **Centered game-style interface** — a compact window centered within **Upgrade Offers**, with a 75% darkened backdrop that blocks background clicks, pixel-stepped corners, a gold frame, and readable ring names.
-- **Original upgrade handling** — confirmation uses Stonewards' existing selection or skip logic.
+- **Ring confirmation** — clicking a ring opens a confirmation dialog before the upgrade is applied.
+- **Skip confirmation** — pressing the game's **SKIP** button requires confirmation before the skip is used.
+- **Cancel and choose again** — return to the same ring offers without spending a reroll or a skip.
+- **Background input lock** — the 75%-darkened backdrop blocks ring cards and **SKIP** while confirmation is open, including additional keyboard or controller submissions.
+- **Game-style interface** — a centered dialog with readable ring names, a gold pixel frame, and distinct **CONFIRM** / **CANCEL** buttons.
 
 ## 🎮 How to use
 
-When the **Upgrade Offers** screen appears:
+1. Open the game's **Upgrade Offers** screen and click a ring.
+2. Press **CONFIRM** to select it, or **CANCEL** to return to the same offers.
+3. To choose a different ring, press **CANCEL** first. Ring cards and **SKIP** cannot be used behind an open confirmation.
+4. To skip an upgrade, press the game's **SKIP** button, then confirm or cancel that action in the same way.
 
-1. Click a ring to open the centered confirmation window.
-2. Click **CONFIRM** to select that ring, or **CANCEL** to keep the current offers.
-3. While confirmation is open, the other ring cards and **SKIP** are locked. Press **CANCEL** first if you want to pick a different ring.
-4. Click the game's **SKIP** button to open a separate skip confirmation. **CONFIRM** uses the skip; **CANCEL** returns to the current ring offers without using it.
-
-There is no additional hotkey. Cancelling does not spend a reroll or a skip.
+There is no extra hotkey. Only pending manual choices can be cancelled; already applied rings cannot be undone. The game's automatic ring-selection timer is unchanged.
 
 ## ⚙️ Configuration
 
-BepInEx creates `BepInEx/config/com.thereisnouser.stonewards.undoringselection.cfg` with this option:
+The mod is enabled by default. BepInEx creates `BepInEx/config/com.thereisnouser.stonewards.undoringselection.cfg` with:
 
 ```ini
 [General]
 Enabled = true
 ```
 
-Set `Enabled = false` to disable confirmation for both ring clicks and **SKIP**.
+Set `Enabled = false` to disable confirmation for both ring selection and **SKIP**.
 
 ## 📦 Installation
 
-Install **UndoRingSelection** using **r2modman** or another compatible Thunderstore mod manager, then launch **Stonewards** through the manager. The Thunderstore package declares **BepInExPack** as a dependency.
+Install [UndoRingSelection on Thunderstore](https://thunderstore.io/c/stonewards/p/thereisnouser/UndoRingSelection/) using **r2modman** or another compatible Thunderstore mod manager. Launch **Stonewards** through the manager.
 
-## 🔧 Compatibility
-
-- **Game:** Stonewards **0.2.3** (tested locally).
-- **Mod loader:** BepInEx 5.
-- **Multiplayer:** modifies the local player's selection UI; multiplayer behavior has not been separately verified.
-- **Release 0.2.1:** ring-card and **SKIP** inputs are locked behind the confirmation dialog; multiplayer compatibility has not been separately verified.
-
-## ⚠️ Known limitations
-
-- **Already confirmed upgrades cannot be undone.** The mod prevents accidental confirmation; it does not remove applied rings.
-- Only manual ring selection is intercepted. The game's automatic selection timer is unchanged.
-- Compatibility with other mods that alter the upgrade-selection screen has not been separately verified.
+The package declares **BepInExPack 5** as a dependency.
 
 ## 🛠️ Development
 
 ### Building
 
-You need a .NET SDK, a local Stonewards installation, and BepInEx 5 in a mod-manager profile. Close the game before installing the rebuilt DLL.
+Building requires a .NET SDK, the Stonewards game assemblies, and BepInEx 5 core assemblies from an existing mod-manager profile. Close the game before installing a rebuilt DLL.
+
+From the repository root, run in PowerShell:
 
 ```powershell
-$gameDir = 'C:\Games\Stonewards' # Replace with your Stonewards installation folder.
+$gameDir = Read-Host 'Stonewards installation folder'
 $profileDir = Join-Path $env:APPDATA 'r2modmanPlus-local\Stonewards\profiles\stonewards-undo-ring-selection'
 
-.\build-and-install.ps1 -GameDir $gameDir -ProfileDir $profileDir
+# Build and install the DLL into the development profile.
+powershell.exe -NoProfile -ExecutionPolicy Bypass `
+    -File .\build-and-install.ps1 `
+    -GameDir $gameDir `
+    -ProfileDir $profileDir
+
+# Or build a Thunderstore upload archive without installing the DLL.
+powershell.exe -NoProfile -ExecutionPolicy Bypass `
+    -File .\package-thunderstore.ps1 `
+    -GameDir $gameDir `
+    -ProfileDir $profileDir
 ```
 
-The script compiles `StonewardsUndoRingSelection.dll` against your installed game's assemblies and places it in the selected profile's `BepInEx/plugins/StonewardsUndoRingSelection/` folder. The development profile name matches the GitHub repository name.
+The profile must already contain BepInExPack. The development profile name matches the repository name. The first script installs the DLL under `BepInEx/plugins/StonewardsUndoRingSelection/`; the packaging script writes `dist/UndoRingSelection-<version>.zip`, using `thunderstore/README.md` for the archive's README.
 
 ### Implementation
 
-The mod intercepts the ring-card `OnClicked` and `OnSubmitted` handlers before the game's `PerformAction` animation runs. A Harmony prefix also intercepts `RogueLikeUpgradeMenu.OnSkipClicked` before its network command. **CONFIRM** invokes the appropriate native handler; **CANCEL** discards the pending action without generating new ring offers. The modal backdrop absorbs background clicks, and the ring/skip handlers reject additional input until the pending action is confirmed or cancelled.
+Harmony intercepts the game's ring-card click/submit handlers and manual skip callback before the action is committed. A UI Toolkit modal blocks background pointer input, and the handlers reject additional card/skip submissions while a confirmation is pending. **CONFIRM** calls the game's original selection or skip handler; **CANCEL** discards the pending action.
 
 ## 🔗 Links
 
-[GitHub repository](https://github.com/thereisnouser/stonewards-undo-ring-selection) · [Report an issue](https://github.com/thereisnouser/stonewards-undo-ring-selection/issues) · [Changelog](CHANGELOG.md)
+[Thunderstore](https://thunderstore.io/c/stonewards/p/thereisnouser/UndoRingSelection/) · [Report an issue](https://github.com/thereisnouser/stonewards-undo-ring-selection/issues) · [Changelog](CHANGELOG.md)
 
 ---
 

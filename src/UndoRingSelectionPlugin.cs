@@ -16,7 +16,7 @@ namespace StonewardsUndoRingSelection
     {
         public const string PluginGuid = "com.thereisnouser.stonewards.undoringselection";
         public const string PluginName = "Undo Ring Selection";
-        public const string PluginVersion = "0.2.1";
+        public const string PluginVersion = "0.2.2";
 
         private static UndoRingSelectionPlugin _plugin;
         private static ConfigEntry<bool> _enabled;

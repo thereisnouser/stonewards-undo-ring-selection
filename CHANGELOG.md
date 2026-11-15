@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.2 — Documentation refresh
+
+- Reworked GitHub and Thunderstore READMEs to follow the ThereIsNoUser Stonewards Mod Description Standard.
+- Removed outdated compatibility and limitations sections, clarified the confirmation/cancellation flow, and added the published Thunderstore link.
+- Updated package and plugin versions to 0.2.2; no gameplay behavior changes.
+
 ## 0.2.1 — Confirmation background input lock
 
 - Blocked clicks on ring cards and **SKIP** behind an open confirmation dialog while retaining the existing 75% dimming.
