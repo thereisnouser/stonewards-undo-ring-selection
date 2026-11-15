@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.1 — Confirmation background input lock
+
+- Blocked clicks on ring cards and **SKIP** behind an open confirmation dialog while retaining the existing 75% dimming.
+- Prevented additional ring selections and skip actions through keyboard or controller from replacing the pending choice.
+- Kept **CONFIRM** / **CANCEL** usable; cancelling unlocks the same ring offers without consuming a reroll or skip.
+- Updated the in-dialog hint and documentation to clarify that switching rings requires **CANCEL** first.
+
 ## 0.2.0 — Confirmation dialog visual overhaul
 
 - Anchored the confirmation dialog to the game's real `RogueLikeUpgradePopup` container, centered at 50%/50%.

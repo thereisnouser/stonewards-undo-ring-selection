@@ -5,9 +5,9 @@
 ## ✨ Features
 
 - **Confirm before choosing** — clicking a ring opens a confirmation window instead of immediately locking in the upgrade.
-- **Cancel and choose again** — dismiss an accidental choice and pick a different ring with a single click.
+- **Cancel and choose again** — press **CANCEL** to dismiss the pending action, then select a different ring from the same offers.
 - **Skip confirmation** — manually pressing **SKIP** also asks for confirmation before using a skip.
-- **Centered game-style interface** — a compact window centered within **Upgrade Offers**, with a 75% darkened backdrop, pixel-stepped corners, a gold frame, and readable ring names.
+- **Centered game-style interface** — a compact window centered within **Upgrade Offers**, with a 75% darkened backdrop that blocks background clicks, pixel-stepped corners, a gold frame, and readable ring names.
 - **Original upgrade handling** — confirmation uses Stonewards' existing selection or skip logic.
 
 ## 🎮 How to use
@@ -16,7 +16,7 @@ When the **Upgrade Offers** screen appears:
 
 1. Click a ring to open the centered confirmation window.
 2. Click **CONFIRM** to select that ring, or **CANCEL** to keep the current offers.
-3. You can also click another ring before confirming to change the pending choice.
+3. While confirmation is open, the other ring cards and **SKIP** are locked. Press **CANCEL** first if you want to pick a different ring.
 4. Click the game's **SKIP** button to open a separate skip confirmation. **CONFIRM** uses the skip; **CANCEL** returns to the current ring offers without using it.
 
 There is no additional hotkey. Cancelling does not spend a reroll or a skip.
@@ -41,7 +41,7 @@ Install **UndoRingSelection** using **r2modman** or another compatible Thunderst
 - **Game:** Stonewards **0.2.3** (tested locally).
 - **Mod loader:** BepInEx 5.
 - **Multiplayer:** modifies the local player's selection UI; multiplayer behavior has not been separately verified.
-- **Release 0.2.0:** the updated confirmation layout has been visually checked in-game; multiplayer compatibility has not been separately verified.
+- **Release 0.2.1:** ring-card and **SKIP** inputs are locked behind the confirmation dialog; multiplayer compatibility has not been separately verified.
 
 ## ⚠️ Known limitations
 
@@ -66,7 +66,7 @@ The script compiles `StonewardsUndoRingSelection.dll` against your installed gam
 
 ### Implementation
 
-The mod intercepts the ring-card `OnClicked` and `OnSubmitted` handlers before the game's `PerformAction` animation runs. A Harmony prefix also intercepts `RogueLikeUpgradeMenu.OnSkipClicked` before its network command. **CONFIRM** invokes the appropriate native handler; **CANCEL** discards the pending action without generating new ring offers.
+The mod intercepts the ring-card `OnClicked` and `OnSubmitted` handlers before the game's `PerformAction` animation runs. A Harmony prefix also intercepts `RogueLikeUpgradeMenu.OnSkipClicked` before its network command. **CONFIRM** invokes the appropriate native handler; **CANCEL** discards the pending action without generating new ring offers. The modal backdrop absorbs background clicks, and the ring/skip handlers reject additional input until the pending action is confirmed or cancelled.
 
 ## 🔗 Links
 

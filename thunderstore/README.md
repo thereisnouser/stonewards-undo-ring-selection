@@ -5,13 +5,13 @@
 ## ✨ Features
 
 - **Selection confirmation** — clicking a ring opens a confirmation window before the upgrade is applied.
-- **Cancel and retry** — return to the same ring offers and choose another ring with a single click.
+- **Cancel and retry** — press **CANCEL** to return to the same ring offers and choose a different ring.
 - **Skip confirmation** — confirm a manual **SKIP** before it consumes a skip.
-- **Centered game-style UI** — a compact dialog centered within **Upgrade Offers**, with a strongly dimmed backdrop, bold labels, readable ring names, and a gold pixel-art frame.
+- **Centered game-style UI** — a compact dialog centered within **Upgrade Offers**, with a strongly dimmed backdrop that blocks clicks on other rings, bold labels, readable ring names, and a gold pixel-art frame.
 
 ## 🎮 How to use
 
-On the **Upgrade Offers** screen, click a ring to open the centered confirmation window. Press **CONFIRM** to select it or **CANCEL** to keep the same offers. You can also click another ring before confirming.
+On the **Upgrade Offers** screen, click a ring to open the centered confirmation window. Press **CONFIRM** to select it or **CANCEL** to keep the same offers. To choose another ring, press **CANCEL** first; the background controls are locked while confirmation is open.
 
 Press the game's **SKIP** button to open a skip confirmation. Press **CONFIRM** to skip or **CANCEL** to return to the offers. There is **no extra hotkey**. Cancelling spends neither a reroll nor a skip.
 
@@ -28,7 +28,7 @@ Install **UndoRingSelection** using **r2modman** or another compatible Thunderst
 - **Game:** Stonewards **0.2.3** (tested locally).
 - **Mod loader:** BepInEx 5.
 - **Multiplayer:** modifies the local player's selection UI; multiplayer behavior has not been separately verified.
-- **Release 0.2.0:** the updated confirmation layout has been visually checked in-game; multiplayer compatibility has not been separately verified.
+- **Release 0.2.1:** background ring-card and **SKIP** input is locked while confirmation is open; multiplayer compatibility has not been separately verified.
 
 ## ⚠️ Known limitations
 
